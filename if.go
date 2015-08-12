@@ -40,7 +40,7 @@ type Packet struct {
 
 type Interface struct {
 	name string
-	file     *os.File
+	file *os.File
 }
 
 // Disconnect from the tun/tap interface.
@@ -55,6 +55,18 @@ func (t *Interface) Close() error {
 // Open(), if the latter was a pattern.
 func (t *Interface) Name() string {
 	return t.name
+}
+
+// Read raw byte slice from interface
+// If aqpplication want to control buffer and GC,
+// Read/Write operations should be used instead of ReadPacket/WritePacket.
+func (t *Interface) Read(p []byte) (n int, err error) {
+	return t.file.Read(p)
+}
+
+// Write raw byte slice to interface
+func (t *Interface) Write(p []byte) (n int, err error) {
+	return t.file.Write(p)
 }
 
 // Read a single packet from the kernel.

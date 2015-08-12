@@ -3,9 +3,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/liudanking/tuntap"
+	"github.com/liudanking/tuntap/util"
 	"os"
-
-	"code.google.com/p/tuntap"
 )
 
 func main() {
@@ -32,17 +32,23 @@ func main() {
 	}
 
 	fmt.Println("Listening on", tun.Name())
+	fmt.Println([]byte(tun.Name()))
+	buf := make([]byte, 1522)
 	for {
-		pkt, err := tun.ReadPacket()
+		// pkt, err := tun.ReadPacket()
+		_, err := tun.Read(buf)
+
 		if err != nil {
 			fmt.Println("Read error:", err)
 		} else {
-			if pkt.Truncated {
-				fmt.Printf("!")
-			} else {
-				fmt.Printf(" ")
-			}
-			fmt.Printf("%x %x\n", pkt.Protocol, pkt.Packet)
+			fmt.Printf("from %s to %s\n", util.IPv4Source(buf).String(), util.IPv4Destination(buf).String())
+			// if pkt.Truncated {
+			// 	fmt.Printf("!")
+			// } else {
+			// 	fmt.Printf(" ")
+			// }
+			// fmt.Printf("%x %x\n", pkt.Protocol, pkt.Packet)
+
 		}
 	}
 }
