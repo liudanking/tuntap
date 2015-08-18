@@ -50,23 +50,13 @@ func main() {
 					copy(buf[16:20], srcip)
 					buf[20] = 0x00
 					buf[21] = 0x00
-
 					buf[22] = 0x00
 					buf[23] = 0x00
-
-					var checksum uint32 = 0
-					for i := 20; i < n; i += 2 {
-						checksum += uint32(binary.BigEndian.Uint16(buf[i : i+2]))
-					}
-
-					checksum = (checksum >> 16) + (checksum & 0xffff)
-					checksum += (checksum >> 16)
-					checksum = 0xffff &^ checksum
-					fmt.Printf("my checksum:%02x\n", uint16(checksum))
-					buf[22] = byte((checksum & 0xff00) >> 8)
-					buf[23] = byte(checksum & 0xff)
+					cksum := util.Checksum(buf[20:n])
+					fmt.Printf("my checksum:%02x\n", uint16(cksum))
+					buf[22] = byte((cksum & 0xff00) >> 8)
+					buf[23] = byte(cksum & 0xff)
 					fmt.Printf("rsp: from %s to %s\n", util.IPv4Source(buf).String(), util.IPv4Destination(buf).String())
-
 					_, err = tun.Write(buf)
 					if err != nil {
 						fmt.Println(err)
