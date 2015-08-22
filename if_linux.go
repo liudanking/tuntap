@@ -32,6 +32,21 @@ type ifReq struct {
 	pad   [0x28 - 0x10 - 2]byte
 }
 
+func Open(ifPattern string, kind DevKind) (*Interface, error) {
+	file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	ifName, err := createInterface(file, ifPattern, kind)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+
+	return &Interface{ifName, file}, nil
+}
+
 func createInterface(file *os.File, ifPattern string, kind DevKind) (string, error) {
 	var req ifReq
 	req.Flags = iffNoPi

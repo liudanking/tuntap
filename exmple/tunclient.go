@@ -1,14 +1,18 @@
-// [15-08-18 23:22:43][INFO] ip -4 route add 0.0.0.0/1 via 10.0.0.40 dev tun0
-// [15-08-18 23:22:43][INFO] ip -4 route add 128.0.0.0/1 via 10.0.0.40 dev tun0
-// make all traffic via tun0
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/liudanking/tuntap"
 	"github.com/liudanking/tuntap/util"
 	"net"
 	"os"
+	"os/exec"
+	"runtime"
+)
+
+const (
+	CLIENT_IP = "10.0.0.30"
 )
 
 func checkError(err error) {
@@ -18,12 +22,49 @@ func checkError(err error) {
 	}
 }
 
+func exeCmd(cmd string) {
+	out, err := exec.Command("bash", "-c", cmd).Output()
+	if err != nil {
+		fmt.Printf("execute %s error:%v", cmd, err)
+		os.Exit(1)
+	}
+	fmt.Println(string(out))
+}
+
+func setTunLinux() {
+	exeCmd("ip link set dev tun0 up")
+	exeCmd(fmt.Sprintf("ip addr add %s/24 dev tun0", CLIENT_IP))
+	// make all traffic via tun0
+	exeCmd(fmt.Sprintf("ip -4 route add 0.0.0.0/1 via %s dev tun0", CLIENT_IP))
+	exeCmd(fmt.Sprintf("ip -4 route add 128.0.0.0/1 via %s dev tun0", CLIENT_IP))
+}
+
+func setTunDarwin() {
+	exeCmd(fmt.Sprintf("ifconfig tun0 inet %s/24 %s up", CLIENT_IP, CLIENT_IP))
+	exeCmd(fmt.Sprintf("route -n add 0.0.0.0/1 %s", CLIENT_IP))
+	exeCmd(fmt.Sprintf("route -n add 128.0.0.0/1 %s", CLIENT_IP))
+}
+
 func main() {
+	lip := flag.String("l", "192.168.102.32", "client local ip")
+	rip := flag.String("r", "192.168.102.31", "server remote ip")
+	flag.Parse()
+
 	tun, err := tuntap.Open("tun0", tuntap.DevTun)
 	checkError(err)
-	laddr, err := net.ResolveUDPAddr("udp", "192.168.102.32:0")
+	switch runtime.GOOS {
+	case "linux":
+		setTunLinux()
+	case "darwin":
+		setTunDarwin()
+	default:
+		fmt.Println("OS NOT supported")
+		os.Exit(1)
+	}
+
+	laddr, err := net.ResolveUDPAddr("udp", *lip+":0")
 	checkError(err)
-	raddr, err := net.ResolveUDPAddr("udp", "192.168.102.31:9826")
+	raddr, err := net.ResolveUDPAddr("udp", *rip+":9826")
 	checkError(err)
 
 	conn, err := net.DialUDP("udp", laddr, raddr)

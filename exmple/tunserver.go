@@ -1,6 +1,3 @@
-// ip link set dev tun0 up
-// ip addr add 10.0.0.30/24 dev tun0
-// iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o eth0 -j MASQUERADE
 package main
 
 import (
@@ -8,6 +5,12 @@ import (
 	"github.com/liudanking/tuntap"
 	"net"
 	"os"
+	"os/exec"
+	"runtime"
+)
+
+const (
+	SERVER_IP = "10.0.0.2"
 )
 
 func checkError(err error) {
@@ -17,9 +20,39 @@ func checkError(err error) {
 	}
 }
 
+func exeCmd(cmd string) {
+	out, err := exec.Command("bash", "-c", cmd).Output()
+	if err != nil {
+		fmt.Printf("execute %s error:%v", cmd, err)
+		os.Exit(1)
+	}
+	fmt.Println(string(out))
+}
+
+func setTunLinux() {
+	exeCmd("ip link set dev tun0 up")
+	exeCmd(fmt.Sprintf("ip addr add %s/24 dev tun0", SERVER_IP))
+	exeCmd("iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o eth0 -j MASQUERADE")
+}
+
+func setTunDarwin() {
+	exeCmd(fmt.Sprintf("ifconfig tun0 inet %s/24 %s up", SERVER_IP, SERVER_IP))
+	exeCmd(fmt.Sprintf("route -n add 10.0.0.0/24 %s", SERVER_IP))
+	exec.Command("bash", "-c", `echo "nat on en0 inet from 10.0.0.0/24 to any -> en0" | pfctl -v -ef -`).Output()
+}
+
 func main() {
 	tun, err := tuntap.Open("tun0", tuntap.DevTun)
 	checkError(err)
+	switch runtime.GOOS {
+	case "linux":
+		setTunLinux()
+	case "darwin":
+		setTunDarwin()
+	default:
+		fmt.Println("OS NOT supported")
+		os.Exit(1)
+	}
 	addr, err := net.ResolveUDPAddr("udp", ":9826")
 	checkError(err)
 	conn, err := net.ListenUDP("udp", addr)
