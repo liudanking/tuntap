@@ -39,8 +39,9 @@ type Packet struct {
 }
 
 type Interface struct {
-	name string
-	file *os.File
+	devKind DevKind
+	name    string
+	file    *os.File
 }
 
 // Disconnect from the tun/tap interface.
@@ -49,6 +50,11 @@ type Interface struct {
 // immediately destroyed by the kernel.
 func (t *Interface) Close() error {
 	return t.file.Close()
+}
+
+// The device type of the interface.
+func (t *Interface) Kind() DevKind {
+	return t.devKind
 }
 
 // The name of the interface. May be different from the name given to

@@ -44,7 +44,7 @@ func Open(ifPattern string, kind DevKind) (*Interface, error) {
 		return nil, err
 	}
 
-	return &Interface{ifName, file}, nil
+	return &Interface{kind, ifName, file}, nil
 }
 
 func createInterface(file *os.File, ifPattern string, kind DevKind) (string, error) {

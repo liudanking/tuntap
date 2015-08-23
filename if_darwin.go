@@ -25,5 +25,5 @@ func Open(ifPattern string, kind DevKind) (*Interface, error) {
 		return nil, err
 	}
 
-	return &Interface{ifPattern, file}, nil
+	return &Interface{kind, ifPattern, file}, nil
 }
