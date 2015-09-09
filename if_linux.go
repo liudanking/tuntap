@@ -63,5 +63,5 @@ func createInterface(file *os.File, ifPattern string, kind DevKind) (string, err
 	if err != 0 {
 		return "", err
 	}
-	return strings.TrimRight(string(req.Name[:4]), "\x00"), nil
+	return strings.TrimRight(string(req.Name[:]), "\x00"), nil
 }
